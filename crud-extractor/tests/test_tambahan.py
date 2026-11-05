@@ -22,3 +22,9 @@ def test_regresi_operator_tidak_sama_dipecah_jadi_dua_token():
     assert [(t.type, t.value) for t in tokens[:3]] == [
         (T.IDENT, "a"), (T.OP, "<>"), (T.IDENT, "b")
     ]
+
+def test_regresi_dua_kutip_dalam_string_memotong_string():
+    # '' di dalam string harus jadi satu karakter kutip, bukan akhir string (spec 2.4)
+    tokens = tokenize("'O''Brien'")
+    assert tokens[0].type == T.STRING and tokens[0].value == "O'Brien"
+    assert tokens[1].type == T.EOF
