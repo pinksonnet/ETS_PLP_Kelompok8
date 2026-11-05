@@ -93,8 +93,25 @@ def test_regresi_subquery_di_update_dihitung_u():
     script = parse_sql("UPDATE a SET v = (SELECT m FROM b) WHERE k IN (SELECT k FROM c)")
     assert analyze_statement(script.statements[0]) == {"a": {"U"}, "b": {"R"}, "c": {"R"}}
 
+def test_tepi_komentar_blok_berisi_bintang_dan_lintas_baris():
+    # '*' di dalam komentar jangan dikira penutup; hanya pasangan '*/' yang menutup
+    tokens = tokenize("/* a * b ** c\n d */ x")
+    assert [(t.type, t.value) for t in tokens] == [(T.IDENT, "x"), (T.EOF, "")]
+
+def test_tepi_string_empat_kutip_bernilai_satu_kutip():
+    # '''' = kutip buka + '' (satu kutip) + kutip tutup; salah hitung membuat string tidak tertutup
+    tokens = tokenize("''''")
+    assert tokens[0].type == T.STRING and tokens[0].value == "'"
+
+def test_tepi_update_tanpa_tabel_satu_error_dan_statement_berikutnya_jalan():
+    # Error tepat di ';' : synchronize harus tetap membuangnya, bukan melompati statement sesudahnya
+    hasil = analyze_source("UPDATE;\nSELECT x FROM b;")
+    assert len(hasil.parse_errors) == 1
+    assert hasil.matrix() == {"b": "R"}
+
 def test_regresi_insert_tanpa_values_atau_select_harus_parse_error():
     # Cabang akhir _insert dulu mengembalikan None dan membuat pipeline crash (spec 6)
     hasil = analyze_source("INSERT INTO t (a); SELECT x FROM b;")
     assert len(hasil.parse_errors) == 1
     assert hasil.matrix() == {"b": "R"}
+
