@@ -28,3 +28,15 @@ def test_regresi_dua_kutip_dalam_string_memotong_string():
     tokens = tokenize("'O''Brien'")
     assert tokens[0].type == T.STRING and tokens[0].value == "O'Brien"
     assert tokens[1].type == T.EOF
+
+def test_regresi_komentar_blok_lintas_baris_dilewati():
+    # Komentar blok tidak menghasilkan token dan posisi baris/kolom harus tetap benar (spec 2.3)
+    tokens = tokenize("/* a * b\n c */ x")
+    assert (tokens[0].type, tokens[0].value) == (T.IDENT, "x")
+    assert (tokens[0].line, tokens[0].col) == (2, 7)
+
+
+def test_regresi_komentar_blok_tidak_ditutup_melempar_lex_error():
+    # Komentar yang tidak ditutup harus LexError, bukan diam-diam menelan sisa input (spec 2.3)
+    with pytest.raises(LexError):
+        tokenize("/* tidak ditutup")
