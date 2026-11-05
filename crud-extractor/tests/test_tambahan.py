@@ -11,3 +11,7 @@ from crud.parser import parse_sql
 from crud.resolver import Resolver
 from crud.analyzer import analyze_statement
 from crud.pipeline import analyze_source
+
+def test_regresi_keyword_huruf_kecil_menjadi_ident():
+    tokens = tokenize("select Select SELECT")
+    assert [(t.type, t.value) for t in tokens[:3]] == [(T.KEYWORD, "SELECT")] * 3
