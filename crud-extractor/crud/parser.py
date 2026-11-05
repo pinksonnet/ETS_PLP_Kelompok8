@@ -88,10 +88,10 @@ class Parser:
         return ast.Script(statements, errors)
 
     def _synchronize(self) -> None:
-        # Panic mode (Crafting Interpreters bab 6): buang token sampai
-        # titik aman, lalu lanjutkan parsing.
+        # Buang token sampai dan termasuk ';' berikutnya (panic mode, spec 6)
         while not self._at_end():
-            self._advance()
+            if self._advance().type == T.SEMICOLON:
+                return
 
     def _statement(self):
         if self._check_kw("SELECT"):
@@ -175,6 +175,7 @@ class Parser:
         if self._match_kw("INNER"):
             kind = "INNER"
         elif self._match_kw("LEFT"):
+            self._match_kw("OUTER")  # OUTER opsional (spec 3)
             kind = "LEFT"
         self._expect_kw("JOIN")
         source = self._table_ref()
@@ -210,9 +211,8 @@ class Parser:
                 rows.append(self._value_row())
             return ast.Insert(table, columns, rows, None, line=start.line)
         if self._check_kw("SELECT"):
-            # TODO(T1): dukung INSERT INTO ... SELECT ... (SPESIFIKASI.md bagian 3 dan 5).
-            raise ParseError("INSERT ... SELECT belum didukung", self._peek())
-        raise ParseError("diharapkan VALUES atau SELECT", self._peek())
+            # values dikosongkan, sumber data ada di field query (spec 3)
+            return ast.Insert(table, columns, [], self._select(), line=start.line)
 
     def _value_row(self) -> list:
         self._expect(T.LPAREN, "'(' pembuka VALUES")

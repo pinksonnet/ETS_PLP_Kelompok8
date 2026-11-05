@@ -47,3 +47,23 @@ def test_regresi_and_or_berada_di_tingkat_presedensi_sama():
     where = script.statements[0].where
     assert where.op == "OR"
     assert where.right.op == "AND"
+
+def test_regresi_error_recovery_membuang_statement_sesudahnya():
+    # Setelah error, parser lanjut ke statement setelah ';' (spec 6)
+    script = parse_sql("SELECT FROM a; SELECT x FROM b")
+    assert len(script.errors) == 1
+    assert len(script.statements) == 1
+
+
+def test_regresi_left_outer_join_ditolak_parser():
+    # OUTER bersifat opsional setelah LEFT (spec 3)
+    script = parse_sql("SELECT a FROM t LEFT OUTER JOIN u ON t.i = u.i")
+    assert script.errors == []
+    assert script.statements[0].joins[0].kind == "LEFT"
+
+
+def test_regresi_insert_select_belum_didukung():
+    # INSERT ... SELECT: tabel target C, tabel sumber R (spec 3 dan 5)
+    script = parse_sql("INSERT INTO a SELECT x FROM b")
+    assert script.errors == []
+    assert analyze_statement(script.statements[0]) == {"a": {"C"}, "b": {"R"}}
