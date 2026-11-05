@@ -35,7 +35,6 @@ def test_regresi_komentar_blok_lintas_baris_dilewati():
     assert (tokens[0].type, tokens[0].value) == (T.IDENT, "x")
     assert (tokens[0].line, tokens[0].col) == (2, 7)
 
-
 def test_regresi_komentar_blok_tidak_ditutup_melempar_lex_error():
     # Komentar yang tidak ditutup harus LexError, bukan diam-diam menelan sisa input (spec 2.3)
     with pytest.raises(LexError):
@@ -54,16 +53,37 @@ def test_regresi_error_recovery_membuang_statement_sesudahnya():
     assert len(script.errors) == 1
     assert len(script.statements) == 1
 
-
 def test_regresi_left_outer_join_ditolak_parser():
     # OUTER bersifat opsional setelah LEFT (spec 3)
     script = parse_sql("SELECT a FROM t LEFT OUTER JOIN u ON t.i = u.i")
     assert script.errors == []
     assert script.statements[0].joins[0].kind == "LEFT"
 
-
 def test_regresi_insert_select_belum_didukung():
     # INSERT ... SELECT: tabel target C, tabel sumber R (spec 3 dan 5)
     script = parse_sql("INSERT INTO a SELECT x FROM b")
     assert script.errors == []
     assert analyze_statement(script.statements[0]) == {"a": {"C"}, "b": {"R"}}
+
+def test_regresi_alias_subquery_tidak_menutupi_alias_luar():
+    # Alias di subquery harus menutupi alias luar yang sama (shadowing, spec 4.3)
+    hasil = analyze_source("SELECT 1 FROM t p WHERE p.a IN (SELECT p.b FROM u p)")
+    assert hasil.statements[0].columns == {("t", "a", "R"), ("u", "b", "R")}
+
+def test_regresi_alias_delete_bocor_ke_statement_berikutnya():
+    # Alias dari DELETE tidak boleh terlihat oleh statement sesudahnya (spec 4.5)
+    hasil = analyze_source("DELETE FROM a x WHERE x.i = 1; SELECT x.i FROM b")
+    assert [d.level for d in hasil.diagnostics] == ["error"]
+    assert "'x'" in hasil.diagnostics[0].message
+
+def test_regresi_kolom_tanpa_qualifier_tidak_diresolusi():
+    # Satu tabel di scope terdalam: kolom di-resolve ke tabel itu (spec 4.3)
+    hasil = analyze_source("SELECT nama FROM pelanggan")
+    assert hasil.statements[0].columns == {("pelanggan", "nama", "R")}
+
+def test_regresi_kolom_ambigu_menghasilkan_warning():
+    # Dua tabel di scope terdalam: warning ambigu, resolved tetap None (spec 4.3)
+    hasil = analyze_source("SELECT a FROM t, u")
+    assert [d.level for d in hasil.diagnostics] == ["warning"]
+    assert "ambigu" in hasil.diagnostics[0].message
+    assert hasil.statements[0].columns == set()
