@@ -92,3 +92,9 @@ def test_regresi_subquery_di_update_dihitung_u():
     # Tabel yang dibaca lewat subquery selalu R, apa pun statement luarnya (spec 5)
     script = parse_sql("UPDATE a SET v = (SELECT m FROM b) WHERE k IN (SELECT k FROM c)")
     assert analyze_statement(script.statements[0]) == {"a": {"U"}, "b": {"R"}, "c": {"R"}}
+
+def test_regresi_insert_tanpa_values_atau_select_harus_parse_error():
+    # Cabang akhir _insert dulu mengembalikan None dan membuat pipeline crash (spec 6)
+    hasil = analyze_source("INSERT INTO t (a); SELECT x FROM b;")
+    assert len(hasil.parse_errors) == 1
+    assert hasil.matrix() == {"b": "R"}

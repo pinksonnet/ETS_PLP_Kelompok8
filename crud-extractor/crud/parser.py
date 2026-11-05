@@ -213,6 +213,8 @@ class Parser:
         if self._check_kw("SELECT"):
             # values dikosongkan, sumber data ada di field query (spec 3)
             return ast.Insert(table, columns, [], self._select(), line=start.line)
+        # Bukan VALUES dan bukan SELECT: grammar menolak (spec 3, 6)
+        raise ParseError("diharapkan VALUES atau SELECT", self._peek())
 
     def _value_row(self) -> list:
         self._expect(T.LPAREN, "'(' pembuka VALUES")
