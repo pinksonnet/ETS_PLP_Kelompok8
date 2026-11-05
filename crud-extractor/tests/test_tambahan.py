@@ -109,6 +109,17 @@ def test_tepi_update_tanpa_tabel_satu_error_dan_statement_berikutnya_jalan():
     assert len(hasil.parse_errors) == 1
     assert hasil.matrix() == {"b": "R"}
 
+def test_tepi_subquery_di_from_tanpa_alias_menghasilkan_warning():
+    # Tanpa alias, subquery tidak bisa dirujuk; resolver wajib memberi warning, bukan error atau crash
+    hasil = analyze_source("SELECT * FROM (SELECT a FROM t) WHERE 1 = 1")
+    assert [d.level for d in hasil.diagnostics] == ["warning"]
+    assert hasil.matrix() == {"t": "R"}
+
+def test_tepi_alias_ganda_di_scope_yang_sama_adalah_error():
+    # Dua tabel dengan alias sama membuat rujukan ambigu (spec 4.2)
+    hasil = analyze_source("SELECT x.a FROM t x, u x")
+    assert [d.level for d in hasil.diagnostics] == ["error"]
+
 def test_regresi_insert_tanpa_values_atau_select_harus_parse_error():
     # Cabang akhir _insert dulu mengembalikan None dan membuat pipeline crash (spec 6)
     hasil = analyze_source("INSERT INTO t (a); SELECT x FROM b;")
