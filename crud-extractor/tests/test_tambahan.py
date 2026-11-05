@@ -5,7 +5,7 @@ Isi dengan:
    lulus sesudahnya). Beri nama yang menjelaskan bug-nya.
 2. Lima test kasus tepi, masing-masing dengan komentar singkat mengapa kasus itu berisiko.
 """
-
+import pytest
 from crud.lexer import tokenize, LexError, TokenType as T
 from crud.parser import parse_sql
 from crud.resolver import Resolver
@@ -40,3 +40,10 @@ def test_regresi_komentar_blok_tidak_ditutup_melempar_lex_error():
     # Komentar yang tidak ditutup harus LexError, bukan diam-diam menelan sisa input (spec 2.3)
     with pytest.raises(LexError):
         tokenize("/* tidak ditutup")
+
+def test_regresi_and_or_berada_di_tingkat_presedensi_sama():
+    # AND harus mengikat lebih kuat dari OR: a=1 OR (b=2 AND c=3) (spec 3.1)
+    script = parse_sql("SELECT a FROM t WHERE a = 1 OR b = 2 AND c = 3")
+    where = script.statements[0].where
+    assert where.op == "OR"
+    assert where.right.op == "AND"
