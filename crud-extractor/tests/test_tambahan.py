@@ -87,3 +87,8 @@ def test_regresi_kolom_ambigu_menghasilkan_warning():
     assert [d.level for d in hasil.diagnostics] == ["warning"]
     assert "ambigu" in hasil.diagnostics[0].message
     assert hasil.statements[0].columns == set()
+
+def test_regresi_subquery_di_update_dihitung_u():
+    # Tabel yang dibaca lewat subquery selalu R, apa pun statement luarnya (spec 5)
+    script = parse_sql("UPDATE a SET v = (SELECT m FROM b) WHERE k IN (SELECT k FROM c)")
+    assert analyze_statement(script.statements[0]) == {"a": {"U"}, "b": {"R"}, "c": {"R"}}
