@@ -5,28 +5,24 @@ sendiri dan memakai konsep dari *Crafting Interpreters* (sebutkan bab). Bagian i
 
 ---
 
-## Bug 1: (judul singkat)
+## Bug 1: Keyword huruf kecil dibaca sebagai identifier
 
-**Ditemukan oleh:** (nama) · **Diperbaiki oleh:** (nama)
+**Ditemukan oleh:** Nazwa · **Diperbaiki oleh:** Nazwa
 
-**Gejala.** Input, output yang didapat, dan output yang diharapkan menurut SPESIFIKASI.md
-(sebutkan bagiannya).
+**Gejala.** select a from t; gagal di-parse. select menjadi token IDENT, padahal spesifikasi 2.2 mewajibkan keyword tidak peka huruf besar/kecil dengan nilai token selalu huruf besar.
 
 **Reproduksi minimal.** SQL terpendek yang memicu bug:
 
 ```sql
-
+select a from t;
 ```
 
-**Akar masalah.** Mengapa kode lama salah? Konsep apa yang dilanggar?
+**Akar masalah.** Bab 4, reserved words: Lexer membaca satu kata utuh, lalu mencocokkannya ke tabel keyword. Kode lama membandingkan teks apa adanya, jadi select tidak cocok dengan SELECT. Kata reserved harus dikenali lewat satu bentuk baku (huruf besar), dan nilai token disimpan dalam bentuk itu supaya parser hanya perlu satu pembanding.
 
-**Perbaikan.** File dan fungsi yang diubah, serta alasannya. Sebutkan juga perbaikan
-alternatif yang kalian pertimbangkan dan alasan tidak memilihnya.
+**Perbaikan.** crud/lexer.py, fungsi _word: pengecekan memakai text.upper() in KEYWORDS dan nilai token disimpan huruf besar. Alternatif: menambahkan versi huruf kecil ke KEYWORDS. Ditolak karena daftar jadi dua kali lebih panjang dan campuran seperti Select tetap lolos.
 
-**Test regresi.** Nama test di `tests/test_tambahan.py` yang gagal sebelum perbaikan dan lulus
-sesudahnya.
+**Test regresi.** test_regresi_keyword_huruf_kecil_menjadi_ident
 
-**Peran AI.** Apakah AI membantu menemukan atau memperbaiki bug ini? Bagaimana kalian
-memverifikasinya?
+**Peran AI.** Menunjuk _word() sebagai lokasi bug berdasarkan spesifikasi 2.2 dan menulis perbaikannya. Verifikasi: test regresi dibuat gagal dulu, lalu pytest dijalankan setelah perbaikan; tokenize("select Select SELECT") menghasilkan tiga KEYWORD bernilai SELECT, dan selection tetap IDENT.
 
 ---
