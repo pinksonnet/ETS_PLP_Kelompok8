@@ -2,11 +2,16 @@
 
 Catat setiap penggunaan AI atau coding agent yang memengaruhi kode atau laporan.
 
-| No | Siapa | Prompt / tugas (ringkas) | Hasil: diterima, diubah, atau ditolak | Alasan | Cara verifikasi |
-| --- | --- | --- | --- | --- | --- |
-| 1 |Alfina dan Nazwa |Cari bug dan TODO dari kode dan spesifikasi |Diterima setelah dicek |Setiap bug cocok dengan bagian spesifikasi |Test regresi dibuat gagal dulu, lalu lulus |
-| 2 |Nazwa |Tulis test regresi |Diubah |Typo T.TOP dan lupa import pytest lolos karena alasan gagal tidak dicek |Baca pesan gagal pytest, pastikan karena assertion |
-| 2 |Alfina dan Nazwa |Pembagian commit satu batch per orang |Diterima |Mempercepat pekerjaan |git log menunjukkan kedua anggota |
+| No  | Siapa            | Prompt / tugas (ringkas)                                           | Hasil: diterima, diubah, atau ditolak | Alasan                                                                  | Cara verifikasi                                                                                          |
+| --- | ---------------- | ------------------------------------------------------------------ | ------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| 1   | Alfina dan Nazwa | Cari bug dan TODO dari kode dan spesifikasi                        | Diterima setelah dicek                | Setiap bug cocok dengan bagian spesifikasi                              | Test regresi dibuat gagal dulu, lalu lulus                                                               |
+| 2   | Nazwa            | Tulis test regresi                                                 | Diubah                                | Typo T.TOP dan lupa import pytest lolos karena alasan gagal tidak dicek | Baca pesan gagal pytest, pastikan karena assertion                                                       |
+| 3   | Alfina dan Nazwa | Pembagian commit satu batch per orang                              | Diterima                              | Mempercepat pekerjaan                                                   | git log menunjukkan kedua anggota                                                                        |
+| 4   | Alfina           | Pengecekan ulang kode terhadap grammar (bug 10)                    | Diterima                              | `INSERT INTO t;` membuat crash karena `_insert` mengembalikan `None`    | Mencoba input langsung, test regresi gagal dengan `AttributeError`, lalu lulus                           |
+| 5   | Alfina dan Nazwa | Derivasi ground truth `audit.sql` dan `pemeliharaan.sql`           | Diterima setelah diperiksa manual     | Aturan dosen: label dari spesifikasi, bukan dari output tool            | Dicocokkan baris demi baris dengan spesifikasi bagian 5, lalu `evaluate.py` memberi parser P=1.00 R=1.00 |
+| 6   | Alfina dan Nazwa | Menyusun draf laporan bug, kartu desain, laporan akhir, dan log AI | Diterima dan diubah                   | Aturan dosen: label dari spesifikasi, bukan dari output tool            | Membaca ulang dan saling menjelaskan secara lisan                                                        |
 
-**Refleksi (3-5 kalimat).** Di bagian mana AI paling membantu? Di mana AI keliru atau
-menyesatkan, dan bagaimana kalian mengetahuinya?
+**Refleksi**.
+AI paling membantu saat membandingkan kode dengan spesifikasi baris demi baris dan menemukan bug yang tidak terlihat dari gejalanya, seperti bug 10. AI juga membantu menyiapkan kerangka dokumen dan test. 
+AI keliru atau tidak membantu pada test regresi yang lolos dengan alasan salah (typo `T.TOP` dan lupa `import pytest`), dan kami baru sadar setelah membaca pesan gagal pytest dengan teliti. 
+Pelajarannya: keluaran AI harus selalu diverifikasi lewat test yang dijalankan sendiri, bukan diterima begitu saja.
