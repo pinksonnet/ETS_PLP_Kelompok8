@@ -36,9 +36,11 @@ def test_regresi_komentar_blok_lintas_baris_dilewati():
     assert (tokens[0].line, tokens[0].col) == (2, 7)
 
 def test_regresi_komentar_blok_tidak_ditutup_melempar_lex_error():
-    # Komentar yang tidak ditutup harus LexError, bukan diam-diam menelan sisa input (spec 2.3)
-    with pytest.raises(LexError):
-        tokenize("/* tidak ditutup")
+    # Komentar yang tidak ditutup harus LexError di posisi pembuka, dengan pesan "tidak ditutup" (spec 2.3)
+    with pytest.raises(LexError) as info:
+        tokenize("SELECT 1 /* tidak ditutup")
+    assert "tidak ditutup" in str(info.value)
+    assert (info.value.line, info.value.col) == (1, 10)
 
 def test_regresi_and_or_berada_di_tingkat_presedensi_sama():
     # AND harus mengikat lebih kuat dari OR: a=1 OR (b=2 AND c=3) (spec 3.1)
@@ -120,8 +122,8 @@ def test_tepi_alias_ganda_di_scope_yang_sama_adalah_error():
     hasil = analyze_source("SELECT x.a FROM t x, u x")
     assert [d.level for d in hasil.diagnostics] == ["error"]
 
-def test_regresi_insert_tanpa_values_atau_select_harus_parse_error():
-    # Cabang akhir _insert dulu mengembalikan None dan membuat pipeline crash (spec 6)
+def test_tepi_insert_tanpa_values_atau_select_harus_parse_error():
+    # Cabang akhir _insert harus raise ParseError; tanpa itu fungsi mengembalikan None dan pipeline crash (spec 3, 6)
     hasil = analyze_source("INSERT INTO t (a); SELECT x FROM b;")
     assert len(hasil.parse_errors) == 1
     assert hasil.matrix() == {"b": "R"}

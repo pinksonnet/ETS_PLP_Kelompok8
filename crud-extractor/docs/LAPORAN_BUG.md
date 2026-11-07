@@ -205,31 +205,9 @@ UPDATE a SET v = (SELECT m FROM b);
 
 ---
 
-## Bug 10: `_insert` mengembalikan `None`
-
-**Ditemukan oleh:** Nazwa · **Diperbaiki oleh:** Nazwa
-
-**Gejala.** `INSERT INTO t`; membuat program crash dengan `AttributeError: 'NoneType' object has no attribute 'line'`. Spesifikasi 6: seharusnya satu `ParseError` dan statement sesudahnya tetap diproses.
-
-**Reproduksi minimal.** SQL terpendek yang memicu bug:
-
-```sql
-INSERT INTO t;
-```
-
-**Akar masalah.** Bab 6, grammar vs fungsi: Alternatif wajib di grammar berarti fungsi harus selalu mengembalikan node atau melempar error. Jika tidak ada alternatif yang cocok dan fungsi tidak raise, Python mengembalikan `None`, yang diperlakukan sebagai statement valid dan baru crash di tahap berikutnya.
-
-**Perbaikan.** `crud/parser.py`, `_insert`: `raise ParseError("diharapkan VALUES atau SELECT", self._peek())` di akhir fungsi. Alternatif: memeriksa `None` di pipeline. Ditolak karena kesalahan harus ditolak di parser.
-
-**Test regresi.** test_regresi_insert_tanpa_values_atau_select_harus_parse_error
-
-**Peran AI.** Menemukan bug ini lewat pengecekan ulang `parser.py` terhadap grammar spesifikasi 3 dan menunjuk akhir `_insert()` sebagai lokasinya (spesifikasi 6), lalu menulis perbaikannya. Verifikasi: `INSERT INTO t;` dicoba langsung dan menghasilkan `AttributeError` sebelum perbaikan; test regresi dibuat gagal dulu, lalu lulus setelah `raise ParseError`; statement valid sesudahnya tetap diproses dan `pytest` penuh lulus.
-
----
-
 ## T1: `INSERT ... SELECT` belum didukung
 
-**Ditemukan oleh:** Alfina berdasarkan penanda TODO(T1) pada kode awal · **Diperbaiki oleh:** Alfina
+**Ditemukan oleh:** Alfina dan Nazwa berdasarkan penanda TODO(T1) pada kode awal · **Diperbaiki oleh:** Alfina dan Nazwa
 
 **Gejala.** `INSERT INTO a SELECT ...` tidak di-parse. Spesifikasi 3 dan 5: tabel target C, tabel sumber R.
 
@@ -246,6 +224,8 @@ INSERT INTO a SELECT x FROM b;
 **Test regresi.** test_regresi_insert_select_belum_didukung
 
 **Peran AI.** Menunjuk `_insert()` sebagai lokasi TODO berdasarkan grammar spesifikasi 3 dan aturan CRUD spesifikasi 5, lalu menulis implementasinya. Verifikasi: `INSERT INTO a SELECT x FROM b` menghasilkan `a` = C dan `b` = R, dicek dengan `pytest` dan CLI.
+
+**Catatan saat mengerjakan T1.** Kode awal `_insert` berakhir dengan `raise ParseError("diharapkan VALUES atau SELECT", ...)` untuk kasus yang bukan `VALUES` dan bukan `SELECT`. Saat mengganti blok TODO(T1) dengan `return ast.Insert(...)`, kami ikut menghapus `raise` terakhir itu, sehingga `INSERT INTO t;` mengembalikan `None` dan pipeline crash dengan `AttributeError`. Ini kesalahan kami sendiri saat mengerjakan T1, bukan bug di kode awal. Kami memulihkan `raise` tersebut di commit berikutnya dan menambah test untuk kasus ini.
 
 ---
 
@@ -290,6 +270,8 @@ SELECT a FROM t;
 **Perbaikan.** `crud/lexer.py`, `_scan_token`: setelah `/*`, maju sampai `*/`, dan `LexError` di posisi pembuka jika tidak ketemu. Alternatif: memakai regex untuk menghapus komentar. Ditolak karena posisi baris dan kolom token ikut bergeser.
 
 **Test regresi.** `test_regresi_komentar_blok_lintas_baris_dilewati` dan `test_regresi_komentar_blok_tidak_ditutup_melempar_lex_error`
+
+Posisi `LexError` di pembuka komentar dan pesan "komentar blok tidak ditutup" adalah keputusan desain kami; spesifikasi 2.3 hanya mensyaratkan `LexError`.
 
 **Peran AI.** Menunjuk `_scan_token()` sebagai lokasi penambahan komentar blok berdasarkan spesifikasi 2.3 dan menulis implementasinya. Verifikasi: dua test (komentar lintas baris yang berisi `*` dilewati, dan komentar tidak ditutup melempar `LexError` di posisi pembuka), lalu `pytest` penuh.
 

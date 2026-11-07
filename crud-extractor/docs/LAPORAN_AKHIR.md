@@ -101,9 +101,8 @@ Proyek ini dikerjakan oleh Alfina dan Nazwa. Pada pengerjaan modul kami membagi 
       * *Bug 4: AND dan OR dipecah ke tingkat presedensi terpisah di parser.*
       * *Bug 7: Arah pencarian scope terbalik pada _lookup() di resolver.*
       * *Bug 8: Scope DELETE tidak di-pop sehingga alias bocor ke statement berikutnya.*
-      * *Bug 10: _insert mengembalikan None, diganti dengan ParseError.*
    * Data, Test, & Dokumen:
-      - *Test regresi untuk Bug 1, 3, 4, 7, 8, T2, dan 10 di tests/test_tambahan.py.*
+      - *Test regresi untuk Bug 1, 3, 4, 7, 8, dan T2 di tests/test_tambahan.py.*
       - *Dua test kasus tepi di tests/test_tambahan.py.*
       - *Penulisan LAPORAN_AKHIR.md, entri LAPORAN_BUG.md untuk bug milik Nazwa, dan bagian kedua LOG_AI.md.*
 
@@ -112,4 +111,4 @@ Proyek ini dikerjakan oleh Alfina dan Nazwa. Pada pengerjaan modul kami membagi 
 
 2. Komentar kode dan pull sebelum push: kode yang kami tulis diberi komentar singkat satu baris agar partner mudah memahaminya, dan kami selalu `git pull` sebelum `git push` sehingga setiap perubahan partner terbaca dulu.
 
-3. Pengecekan ulang bersama: setelah semua perbaikan selesai, kami membaca ulang kode terhadap grammar di SPESIFIKASI.md dan menemukan bug 10 yang sebelumnya terlewat.
+3. Pengecekan ulang bersama: setelah semua perbaikan selesai, kami membaca ulang kode terhadap grammar di SPESIFIKASI.md dan menemukan bahwa cabang akhir _insert hilang saat T1, lalu memulihkannya
