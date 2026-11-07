@@ -88,7 +88,7 @@ Proyek ini dikerjakan oleh Alfina dan Nazwa. Pada pengerjaan modul kami membagi 
 	- Data, Test, & Dokumen:
 		- *Pelabelan ground truth di data/ground_truth.csv.* 
 		- *Test regresi untuk Bug 2, 5, 6, 9, T1, dan T3 di tests/test_tambahan.py.* 
-		- *Lima test kasus tepi di tests/test_tambahan.py.* 
+		- *Tiga test kasus tepi di tests/test_tambahan.py.* 
 		- *Penulisan KARTU_DESAIN.md, entri LAPORAN_BUG.md untuk bug milik Alfina, dan bagian kedua LOG_AI.md.*
 
 2. **Nazwa**
