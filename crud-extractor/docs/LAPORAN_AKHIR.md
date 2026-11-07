@@ -49,19 +49,39 @@ lexing, parsing, atau resolusi).
 
 ## 3. Batas pendekatan kami
 
-Minimal tiga hal yang **tidak bisa** ditangani dengan benar oleh tool ini meskipun semua bug
-sudah diperbaiki. Untuk tiap batas: contoh SQL atau situasinya, akibatnya pada CRUD matrix,
-dan informasi apa yang dibutuhkan untuk mengatasinya.
+Walaupun semua bug sudah diperbaiki, ada hal-hal yang tidak bisa ditangani dengan benar oleh tool ini. Batas-batas ini bukan bug, melainkan konsekuensi dari aturan spesifikasi (tanpa skema database, sintaks tertentu di luar lingkup) dan keputusan desain kami.
 
-1. **Tanpa skema database.**
-    `SELECT nama FROM pelanggan p, pesanan o` menghasilkan warning “ambigu tanpa skema”, `resolved` tetap `None`, dan `column_usage` tidak bisa memetakan kolom. Yang dibutuhkan: skema (tabel dan kolomnya).
+1. Tanpa skema database: kolom tidak bisa dipetakan ke tabelnya 
+	* Contoh SQL / situasi: `SELECT * FROM crm.pelanggan;` dan `SELECT nama FROM pelanggan p, pesanan o;` 
+	* Akibat pada CRUD matrix: Tabel tetap tercatat benar (`crm.pelanggan` R, serta `pelanggan` R dan `pesanan` R). Tetapi laporan kolom (`--kolom`) kosong untuk statement ini. Pada `SELECT *`, tool tidak tahu kolom apa saja yang dibaca. Pada kolom `nama` yang bisa milik dua tabel, tool memberi peringatan "kolom 'nama' ambigu tanpa skema" dan `resolved` tetap `None`. 
+	* Informasi yang dibutuhkan: Metadata skema database (daftar kolom tiap tabel, misalnya dari data dictionary), supaya `*` bisa diperluas menjadi daftar kolom dan kolom tanpa qualifier bisa dipastikan milik tabel mana.
 
-2. **`COUNT(DISTINCT x)` kehilangan flag DISTINCT.**
-    `FunctionCall` tidak punya field itu dan API tidak boleh diubah. Matriks CRUD tidak terpengaruh, tapi informasi DISTINCT hilang dari AST. Yang dibutuhkan: field baru di node (perubahan API).
+2. `t.*` tidak didukung: statement dilewati seluruhnya 
+	* Contoh SQL / situasi: `SELECT p.* FROM crm.pelanggan p;` 
+	* Akibat pada CRUD matrix: Parser berhenti dengan error sintaks (`diharapkan nama kolom setelah '.'`, ditemukan `*`) dan mengaktifkan panic mode. Statement itu dibuang dan tabel `crm.pelanggan` tidak tercatat di matriks (False Negative). Statement setelahnya tetap diproses. 
+	* Informasi yang dibutuhkan: Penambahan aturan grammar untuk `IDENT "." "*"` di parser dan penanganannya di resolver. Untuk laporan kolom, tetap butuh skema seperti pada poin 1.
 
-3. **Di luar lingkup: CTE (`WITH`), `UNION`, quoted identifier.**
-    Statement yang memakainya jadi parse error atau tabelnya tidak tercatat. Yang dibutuhkan: perluasan grammar dan resolver.
+3. 
 
 ## 4. Pembagian kerja
 
-Siapa mengerjakan apa, dan bagaimana kalian memastikan keduanya memahami seluruh kode.
+Proyek ini dikerjakan oleh Alfina dan Nazwa. Pada pengerjaan modul kami membagi agar tiap anggota bisa mengerjakan semua modul.
+
+1. **Alfina:**
+	* Modul: crud/lexer.py (sebagian), crud/parser.py (sebagian), dan crud/analyzer.py (sebagian).
+	* Fitur (TODO): 
+		* *T1: Dukungan sintaks INSERT INTO ... SELECT ... di parser.* 
+		* *T3: Pemindaian komentar blok multi-baris /* ... / dan error jika tidak ditutup di lexer.
+	- Perbaikan Bug:
+		* *Bug 2: Operator <> terpecah menjadi dua token (maximal munch) di lexer.* 
+		* *Bug 5: Panic mode error recovery berhenti di semicolon (;) bukan di akhir file.* 
+		* *Bug 6: Dukungan keyword OUTER pada LEFT OUTER JOIN di parser.* 
+		* *Bug 9: Subquery di UPDATE ditandai U, dikoreksi menjadi R di analyzer.*
+	- Data, Test, & Dokumen:
+		- *Pelabelan ground truth di data/ground_truth.csv.* 
+		- *Test regresi untuk Bug 2, 5, 6, 9, T1, dan T3 di tests/test_tambahan.py.* 
+		- *Lima test kasus tepi di tests/test_tambahan.py.* 
+		- *Penulisan KARTU_DESAIN.md, entri LAPORAN_BUG.md untuk bug milik Alfina, dan bagian kedua LOG_AI.md.*
+
+
+2. **Nazwa**
