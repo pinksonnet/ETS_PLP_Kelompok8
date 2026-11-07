@@ -61,7 +61,15 @@ Walaupun semua bug sudah diperbaiki, ada hal-hal yang tidak bisa ditangani denga
 	* Akibat pada CRUD matrix: Parser berhenti dengan error sintaks (`diharapkan nama kolom setelah '.'`, ditemukan `*`) dan mengaktifkan panic mode. Statement itu dibuang dan tabel `crm.pelanggan` tidak tercatat di matriks (False Negative). Statement setelahnya tetap diproses. 
 	* Informasi yang dibutuhkan: Penambahan aturan grammar untuk `IDENT "." "*"` di parser dan penanganannya di resolver. Untuk laporan kolom, tetap butuh skema seperti pada poin 1.
 
-3. 
+3. CTE (`WITH`), `UNION`, `MERGE`, dan quoted identifier di luar lingkup
+   * Contoh SQL / situasi: `WITH aktif AS (SELECT id FROM crm.pelanggan) SELECT * FROM aktif;`, `SELECT a FROM t UNION SELECT b FROM u;`, dan `SELECT "nama" FROM t;`
+   * Akibat pada CRUD matrix: Pada `WITH` dan `UNION`, parser mendeteksi error sintaks, statement dilewati, dan tabel di dalamnya (`crm.pelanggan`, `t`, `u`) tidak tercatat. Pada `UNION`, kata `UNION` dibaca sebagai alias tabel `t`, lalu parser menemukan `SELECT` di tempat yang salah. Quoted identifier lebih berat dampaknya: lexer tidak mengenal tanda `"`, sehingga melempar `LexError`, dan menurut spesifikasi 2.7 pemrosesan seluruh file berhenti. Jadi satu `"nama"` di baris 1 membuat statement sesudahnya di file yang sama tidak diproses.
+   * Informasi yang dibutuhkan: Perluasan grammar di `crud/parser.py` untuk `WITH`, `UNION`, dan `MERGE`. Perluasan resolver untuk tabel sementara hasil CTE, supaya `aktif` tidak dihitung sebagai tabel fisik. Perluasan lexer untuk `"..."` dan `[...]`.
+
+4. `COUNT(DISTINCT x)` kehilangan kata DISTINCT
+   * Contoh SQL / situasi: `SELECT COUNT(DISTINCT a) FROM t;`
+   * Akibat pada CRUD matrix: Matriks tetap benar (`t` R), tapi node `FunctionCall` tidak punya field untuk menyimpan DISTINCT dan spesifikasi melarang perubahan API publik, sehingga informasi itu hilang dari AST. Untuk CRUD ini tidak berpengaruh, tetapi analisis yang membedakan `COUNT(a)` dan `COUNT(DISTINCT a)` tidak bisa dilakukan dari AST.
+   * Informasi yang dibutuhkan: Tambahan field `distinct` pada node `FunctionCall` di `crud/ast_nodes.py`, yang berarti mengubah API.
 
 ## 4. Pembagian kerja
 
@@ -83,5 +91,25 @@ Proyek ini dikerjakan oleh Alfina dan Nazwa. Pada pengerjaan modul kami membagi 
 		- *Lima test kasus tepi di tests/test_tambahan.py.* 
 		- *Penulisan KARTU_DESAIN.md, entri LAPORAN_BUG.md untuk bug milik Alfina, dan bagian kedua LOG_AI.md.*
 
-
 2. **Nazwa**
+   * Modul: crud/lexer.py (sebagian), crud/parser.py (sebagian), dan crud/resolver.py.
+   * Fitur (TODO):
+      * *T2: Resolusi kolom tanpa qualifier pada scope terdalam di resolver.*
+   * Perbaikan Bug:
+      * *Bug 1: Keyword huruf kecil (case-insensitive) dinormalisasi di lexer.*
+      * *Bug 3: Dua tanda petik berturut-turut ('') di string literal menjadi satu kutip*
+      * *Bug 4: AND dan OR dipecah ke tingkat presedensi terpisah di parser.*
+      * *Bug 7: Arah pencarian scope terbalik pada _lookup() di resolver.*
+      * *Bug 8: Scope DELETE tidak di-pop sehingga alias bocor ke statement berikutnya.*
+      * *Bug 10: _insert mengembalikan None, diganti dengan ParseError.*
+   * Data, Test, & Dokumen:
+      - *Test regresi untuk Bug 1, 3, 4, 7, 8, T2, dan 10 di tests/test_tambahan.py.*
+      - *Dua test kasus tepi di tests/test_tambahan.py.*
+      - *Penulisan LAPORAN_AKHIR.md, entri LAPORAN_BUG.md untuk bug milik Nazwa, dan bagian kedua LOG_AI.md.*
+
+**Cara memastikan keduanya memahami seluruh kode**
+1. Pola kerja yang sama di tiap perbaikan: sebelum memperbaiki, kami menulis test regresi dan memastikan gagal karena assertion, lalu memperbaiki kode, menjalankan seluruh test, baru commit. Dengan pola yang sama, tiap perbaikan mudah dibaca dan dicek oleh partner.
+
+2. Komentar kode dan pull sebelum push: kode yang kami tulis diberi komentar singkat satu baris agar partner mudah memahaminya, dan kami selalu `git pull` sebelum `git push` sehingga setiap perubahan partner terbaca dulu.
+
+3. Pengecekan ulang bersama: setelah semua perbaikan selesai, kami membaca ulang kode terhadap grammar di SPESIFIKASI.md dan menemukan bug 10 yang sebelumnya terlewat.
